@@ -3,7 +3,7 @@
     "name": "course-project-mini",
     "slug": "course-project-mini",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "landscape",
     "icon": "./assets/images/icon.png",
     "scheme": "courseprojectmini",
     "userInterfaceStyle": "automatic",
