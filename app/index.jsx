@@ -37,15 +37,15 @@ export default function Index() {
       <Link href="/About" asChild>
         <Pressable
           className="
-            absolute bottom-6 right-6
-            min-w-32 items-center
-            rounded-xl bg-blue-500
-            px-6 py-3
-            shadow-md
-            bg-slate-800 active:bg-slate-950
-          "
+          absolute bottom-6 right-6
+          min-w-32 items-center
+          rounded-xl bg-sky-200
+          px-6 py-3
+          shadow-sm active:bg-sky-300"
         >
-          <Text className="text-base font-bold text-white">אודות</Text>
+          <Text className="text-base font-bold text-sky-950">
+            אודות
+          </Text>
         </Pressable>
       </Link>
 
@@ -68,11 +68,11 @@ export default function Index() {
                 className="
                 h-12 w-80
                 items-center justify-center
-                rounded-xl bg-indigo-600
-                px-4 shadow-md    
-                active:bg-indigo-700"
+                rounded-xl bg-indigo-200
+                px-4 shadow-sm
+                active:bg-indigo-300"
               >
-                <Text className="text-base font-bold text-white">
+                <Text className="text-base font-bold text-indigo-950">
                   {profile.name}
                 </Text>
               </Pressable>
@@ -83,10 +83,10 @@ export default function Index() {
                 onPress={() => handleDelete(profile.id)}
                 className="
                 items-center rounded-lg
-                bg-red-600 px-4 py-3
-                active:bg-red-700"
+                bg-rose-200 px-4 py-3
+                active:bg-rose-300"
               >
-                <Text className="font-bold text-white">
+                <Text className="font-bold text-rose-950">
                   מחק
                 </Text>
               </Pressable>
@@ -99,14 +99,14 @@ export default function Index() {
         <Link href="/profiles/create" asChild>
 
           <Pressable
-            className="
+          className="
           absolute bottom-24 left-6
           min-w-32 items-center
-          rounded-xl bg-green-600
+          rounded-xl bg-emerald-200
           px-6 py-3
-          shadow-md active:bg-green-700"
+          shadow-sm active:bg-emerald-300"
           >
-            <Text className="text-base font-bold text-white">
+            <Text className="text-base font-bold text-emerald-950">
               צור פרופיל חדש
             </Text>
           </Pressable>
@@ -122,9 +122,9 @@ export default function Index() {
           rounded-xl px-6 py-3
           shadow-md
 
-          ${isEditorMode ? "bg-green-600 active:bg-green-700" : "bg-slate-800 active:bg-slate-950"}`} // אם isEditorMode == true אז שמאל אם false אז ימין
+          ${isEditorMode ? "bg-amber-200 active:bg-amber-300" : "bg-slate-200 active:bg-slate-300"}`} // אם isEditorMode == true אז שמאל אם false אז ימין
       >
-        <Text className="text-base font-bold text-white">
+        <Text className="text-base font-bold text-slate-900">
           מצב עורך
         </Text>
       </Pressable>
