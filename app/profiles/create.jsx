@@ -56,10 +56,11 @@ export default function CreateProfile() {
           style={{ flex: 2 }}
           className="
           items-center rounded-xl
-          bg-green-600 px-6 py-3
-          active:bg-green-700"
+          rounded-xl bg-emerald-200
+          px-6 py-3
+          shadow-sm active:bg-emerald-300"
         >
-          <Text className="text-base font-bold text-white">
+          <Text className="text-base font-bold text-emerald-950">
             שמור פרופיל
           </Text>
         </Pressable>
