@@ -79,13 +79,12 @@ function createBoardCards(boardItems, boardId, navigationTargetBoardId = null) {
   // יוצרת עותק חדש של הכרטיסים עבור לוח מסוים
   return boardItems.map((row) =>
     row.map((card) => ({
-      ...card,
+      ...card, // פורס את הרשימה מוסיף את הבאים:
       id: `${boardId}-card-${card.slotIndex}`,
       boardId, // מחבר את הכרטיס ללוח
       targetBoardId:
-        card.cardType === "navigation"
-          ? navigationTargetBoardId
-          : null,
+        card.cardType === "navigation" ? navigationTargetBoardId : null,
+      imagePath: card.imagePath ?? null,
     }))
   );
 }
