@@ -5,7 +5,7 @@ import { useProfiles } from "../../context/ProfilesContext";
 export default function CreateProfile() {
 
   const [name, setName] = useState(""); // state לשינוי השם
-  const { setProfiles } = useProfiles(); // useProfiles() נותן לקומפוננטה גישה לערכים שה־ProfilesProvider משתף
+  const { addProfile } = useProfiles(); // useProfiles() נותן לקומפוננטה גישה לערכים שה־ProfilesProvider משתף
 
   const handleSave = () => {
     const cleanName = name.trim();
@@ -15,20 +15,19 @@ export default function CreateProfile() {
       return;
     }
     const newProfile = {
-      id: Date.now().toString(), // עושה חישוב על התאריך שנותן מספר ייחודי
+      id: Date.now().toString(), // עושה חישוב על התאריך כדי להמציא מזהה ייחודי
       name: cleanName,
+      imagePath: null,
+      createdAt: new Date().toISOString(),
     };
 
-    setProfiles((currentProfiles) => [
-      ...currentProfiles, // פורס את המערך הקיים
-      newProfile, // ומוסיף אחד נוסף
-    ]);
+    addProfile(newProfile);
 
     router.replace("/"); // יעני תחזור לroot - מסך הבית
   };
 
   return (
-    <View className="flex-1 items-center justify-center bg-white p-6">
+    <View className="flex-1 items-center justify-center bg-background p-6">
       <Text className="mb-6 text-2xl font-bold">
         יצירת פרופיל חדש
       </Text>
@@ -66,14 +65,8 @@ export default function CreateProfile() {
         </Pressable>
 
         <Link href="/" asChild>
-          <Pressable
-            style={{ flex: 1 }}
-            className="
-            items-center rounded-xl
-            bg-slate-800 px-6 py-3
-            active:bg-slate-950"
-          >
-            <Text className="font-bold text-white">
+          <Pressable className="rounded-xl bg-slate-200 px-6 py-3 active:bg-slate-300">
+            <Text className="text-base font-bold text-slate-900">
               חזרה
             </Text>
           </Pressable>
@@ -83,4 +76,3 @@ export default function CreateProfile() {
     </View>
   );
 }
-

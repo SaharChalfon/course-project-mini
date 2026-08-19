@@ -1,6 +1,5 @@
 import { Link } from "expo-router";
 import { styled } from 'nativewind';
-import { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { useProfiles } from "../context/ProfilesContext";
@@ -9,9 +8,10 @@ const SafeAreaView = styled(RNSafeAreaView);
 
 
 export default function Index() {
-  const { profiles, setProfiles } = useProfiles();
 
-  const [isEditorMode, setIsEditorMode] = useState(false);
+  const { profiles, deleteProfile, isEditorMode, toggleEditorMode } = useProfiles();
+
+
 
   const handleDelete = (profileId) => { // פונקציה שמטפלת במחיקת פרופיל 
     Alert.alert(
@@ -21,19 +21,15 @@ export default function Index() {
         { text: "ביטול", style: "cancel" },
         {
           text: "מחק", style: "destructive",
-          onPress: () => {
-            setProfiles((currentProfiles) => currentProfiles.filter(
-              (profile) => profile.id !== profileId // מפלטרים מרשימת הפרופילים את השם ה id שנשלח
-            )
-            );
-          },
-        },
+          onPress: () => { deleteProfile(profileId); }
+        }, //  // מוחק את הפרופיל ואת הלוחות ששייכים לו
       ]
     );
   };
 
   return (
     <SafeAreaView className="flex-1 items-center justify-center bg-background p-5">
+
       <Link href="/About" asChild>
         <Pressable
           className="
@@ -99,7 +95,7 @@ export default function Index() {
         <Link href="/profiles/create" asChild>
 
           <Pressable
-          className="
+            className="
           absolute bottom-24 left-6
           min-w-32 items-center
           rounded-xl bg-emerald-200
@@ -114,8 +110,7 @@ export default function Index() {
       )}
 
       <Pressable
-        onPress={() =>
-          setIsEditorMode((previous) => !previous)} // ההפך מהמצב שהיה לפניכן, דלוק/כבוי
+        onPress={toggleEditorMode}
         className={`
           absolute bottom-6 left-6
           min-w-32 items-center

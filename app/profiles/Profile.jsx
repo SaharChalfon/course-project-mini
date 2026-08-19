@@ -1,54 +1,95 @@
-import { Link, useLocalSearchParams } from "expo-router"; // מאפשרת לקומפוננטה לקרוא פרמטרים שהגיעו דרך הכתובת
+import { Link, router, useLocalSearchParams } from "expo-router"; // מאפשרת לקומפוננטה לקרוא פרמטרים שהגיעו דרך הכתובת
 import * as Speech from "expo-speech";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useProfiles } from "../../context/ProfilesContext"; // מחזיר את הערכים שה־Provider משתף
 
-const boardItems = [
-  ["אני", "רוצה", "לא", "כן", "אוכל", "מים", "ללכת", "עזרה"],
-  ["בית", "משפחה", "חבר", "שמח", "עצוב", "כואב", "עייף", "עוד"],
-  ["שלום", "תודה", "בבקשה", "עכשיו", "אחר כך", "איפה", "מה", "מי"],
-];
 
 export default function Profile() {
 
   const { profileId } = useLocalSearchParams(); //  מחזיר אובייקט המכיל את הפרמטרים של המסך הנוכחי
-  const { profiles } = useProfiles();
+  const { profiles, boards, isEditorMode } = useProfiles();
 
   const selectedProfile = profiles.find( // find() מחפשת את האיבר הראשון במערך שעומד בתנאי
     (profile) => profile.id.toString() === profileId // אם הביטוי שקר ממשיך הלאה אם הביטוי אמת מחזיר את האובייקט הנוכחי
   );
 
-  const [sentenceWords, setSentenceWords] = useState([]); // מתחיל כמערך ריק
+  const profileBoards = boards.filter(
+    (board) =>
+      board.profileId.toString() === profileId // מציג רק את הלוחות של אותו פרופיל
+  );
 
-  const handleCellPress = (word) => {
-    setSentenceWords((currentWords) => [
-      ...currentWords, word // פורס את הרשימה הקיימת ומוסיף מילה
-    ]);
+  const rootBoard = profileBoards.find(
+    (board) => board.isRoot
+  );
+
+  const [currentBoardId, setCurrentBoardId] = useState(
+    rootBoard?.id ?? null
+  ); // שומר את מזהה הלוח שמוצג כרגע. בהתחלה זהו הלוח הראשי של הפרופיל
+
+  const currentBoard = profileBoards.find(
+    (board) => board.id === currentBoardId
+  ); // מוצא בלוחות הפרופיל את הלוח שהמזהה שלו שווה למזהה הלוח הנוכחי
+
+  const [sentenceCards, setSentenceCards] = useState([]); // יצירת "מצב" (סטייט) של רשימת הכרטיסים שנבחרו
+
+  const handleCellPress = (card) => {
+    if (
+      card.cardType === "navigation" &&
+      card.targetBoardId !== null
+    ) {
+      setCurrentBoardId(card.targetBoardId);
+      return; // לאחר המעבר ללוח היעד, הפונקציה מסתיימת ולכן כרטיס הניווט אינו מתווסף למשפט
+    }
+
+    setSentenceCards((currentCards) => [
+      ...currentCards, card]);
+  }; // פורס את הרשימה הקיימת ומוסיף את הכרטיס שנבחר
+
+  const handleCellLongPress = (card) => {
+    router.push({
+      pathname: "/profiles/edit-card",
+      params: {
+        boardId: currentBoard.id,
+        cardId: card.id,
+      },
+    });
   };
 
-  const handleDeleteLast = () => { // מחיקת מילה אחרונה בשורה
-    setSentenceWords((currentWords) =>
-      currentWords.slice(0, -1) // התחל מהאיבר הראשון העתק עד האיבר האחרון, אך אל תכלול אותו
+  const handleDeleteLast = () => { // מחיקת הכרטיס האחרון בשורה
+    setSentenceCards((currentCards) =>
+      currentCards.slice(0, -1) // העתקה: התחל מהאיבר הראשון עד האיבר האחרון, אך אל תכלול את האיבר האחרון
     );
   };
 
-  const handleClearSentence = () => { // מחיקת כל המילים בשורה
-    setSentenceWords([]); // מחליפה את רשימת המילים במערך ריק
+  const handleClearSentence = () => { // מחיקת כל הכרטיסים בשורה
+    setSentenceCards([]); // מחליפה את רשימת הכרטיסים במערך ריק
   };
 
   const handlePlay = () => { // פונקציה לטיפול בניגון
-    if (sentenceWords.length === 0) {
+    if (sentenceCards.length === 0) {
       return; // מונע ניסיון להקריא משפט ריק
     }
 
-    const sentence = sentenceWords.join(" "); // מחבר את כל מילות המשפט עם רווח בינהן
+
+    const sentence = sentenceCards.map((card) => card.spokenText).join(" ");
+    // עובר על רשימת האובייקטים (כרטיסים) ומחבר את כל מילות המשפט עם רווח בינהן
 
     Speech.speak(sentence, {
-      language: "he-IL", // שולחת את המשפט למנגנון ההקראה של המכשיר ומבקשת קול בעברית
+      language: "he-IL", // שולח את המשפט למנגנון ההקראה של המכשיר ומבקש קול בעברית
+      rate: 0.6,
+
     });
   };
+
+  const handleHomePress = () => {
+    setCurrentBoardId(rootBoard.id);
+  };
+
+  if (!selectedProfile || !rootBoard || !currentBoard) {
+    return null; // מונע קריסה אם הפרופיל או הלוחות שלו נמחקו בזמן שהמסך עדיין קיים במחסנית הניווט
+  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -63,11 +104,21 @@ export default function Profile() {
             </Pressable>
           </Link>
 
-          <Pressable className="h-full w-24 items-center justify-center rounded-xl bg-slate-800">
+          {isEditorMode && (
+            <Text className="text-base font-bold text-amber-700">
+              מצב עריכה פעיל
+            </Text>
+          )}
+
+          <Pressable
+            onPress={handleHomePress}
+            className="h-full w-24 items-center justify-center rounded-xl bg-slate-800"
+          >
             <Text className="text-base font-bold text-white">
               ראשי
             </Text>
           </Pressable>
+
         </View>
 
         <View className="mb-3 h-20 flex-row">
@@ -93,12 +144,12 @@ export default function Profile() {
               paddingHorizontal: 12,
             }}
           >
-            {sentenceWords.map((word, index) => ( // עובר על הרשימת מילים
+            {sentenceCards.map((card, index) => ( //  עובר על רשימת האובייקטים ושם בשורת ההרכבה את הכרטיס
               <Text
-                key={`${word}-${index}`}
+                key={`${card.id}-${index}`}
                 className="text-lg font-bold text-slate-800"
               >
-                {word}
+                {card.label}
               </Text>
             ))}
           </ScrollView>
@@ -113,25 +164,32 @@ export default function Profile() {
             </Text>
           </Pressable>
 
-          
+
         </View>
 
         <View className="flex-1 rounded-xl bg-slate-200 p-1">
-          {boardItems.map((row, rowIndex) => ( // מכניס את המילים לגריד, קודם לפי השורות
+          {currentBoard.cards.map((row, rowIndex) => ( // מכניס את המילים לגריד, קודם לפי השורות
             <View key={rowIndex} className="flex-1 flex-row">
-              {row.map((word, columnIndex) => ( // ואז לפי עמודות
+              {row.map((card) => (
                 <View
-                  key={`${rowIndex}-${columnIndex}`}
+                  key={card.id}
                   className="flex-1 p-1"
                 >
+
                   <Pressable
-                    onPress={() => handleCellPress(word)}
-                    className="flex-1 items-center justify-center rounded-lg border-2 border-slate-300 bg-white"
+                    onPress={() => handleCellPress(card)}
+                    onLongPress={ isEditorMode ? () => handleCellLongPress(card) : undefined }
+                    className={`
+                        flex-1 items-center justify-center rounded-lg border-2
+                        ${isEditorMode
+                        ? "border-amber-400 bg-amber-50"
+                        : "border-slate-300 bg-white"}`}
                   >
                     <Text className="text-base font-bold text-slate-800">
-                      {word}
+                      {card.label}
                     </Text>
                   </Pressable>
+
                 </View>
               ))}
             </View>
