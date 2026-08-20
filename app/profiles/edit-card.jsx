@@ -1,7 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Image, Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useProfiles } from "../../context/ProfilesContext";
 
@@ -58,6 +58,34 @@ export default function EditCard() {
     }
   };
 
+  const handleTakePhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "אין הרשאה למצלמה",
+          "כדי לצלם תמונה יש לאפשר לאפליקציה להשתמש במצלמה"
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setImagePath(result.assets[0].uri);
+      }
+    } catch {
+      Alert.alert("שגיאה", "לא ניתן היה לצלם תמונה");
+    }
+  };
+
+
   const handleRemoveImage = () => {
     setImagePath(null);
   };
@@ -74,18 +102,18 @@ export default function EditCard() {
 
         <View className="w-full max-w-3xl flex-row-reverse items-center gap-8">
           <View className="flex-1 gap-4">
-          <View>
-            <Text className="mb-2 text-right font-bold text-slate-800">
-              טקסט שמוצג בכרטיס
-            </Text>
+            <View>
+              <Text className="mb-2 text-right font-bold text-slate-800">
+                טקסט שמוצג בכרטיס
+              </Text>
 
-            <TextInput
-              value={label}
-              onChangeText={setLabel}
-              textAlign="right"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-base"
-            />
-          </View>
+              <TextInput
+                value={label}
+                onChangeText={setLabel}
+                textAlign="right"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-base"
+              />
+            </View>
 
             <View>
               <Text className="mb-2 text-right font-bold text-slate-800">
@@ -132,11 +160,19 @@ export default function EditCard() {
               </View>
             )}
 
-            <Pressable onPress={handlePickImage} className="w-full items-center rounded-xl bg-sky-200 px-4 py-3 active:bg-sky-300">
-              <Text className="font-bold text-sky-950">
-                {imagePath ? "החלף תמונה" : "בחר תמונה"}
-              </Text>
-            </Pressable>
+            <View className="w-full flex-row gap-3">
+              <Pressable onPress={handlePickImage} className="flex-1 items-center rounded-xl bg-sky-200 px-4 py-3 active:bg-sky-300">
+                <Text className="font-bold text-sky-950">
+                  גלריה
+                </Text>
+              </Pressable>
+
+              <Pressable onPress={handleTakePhoto} className="flex-1 items-center rounded-xl bg-violet-200 px-4 py-3 active:bg-violet-300">
+                <Text className="font-bold text-violet-950">
+                  מצלמה
+                </Text>
+              </Pressable>
+            </View>
 
             {imagePath && (
               <Pressable onPress={handleRemoveImage} className="w-full items-center rounded-xl bg-rose-200 px-4 py-3 active:bg-rose-300">

@@ -43,7 +43,7 @@
         "expo-image-picker",
         {
           "photosPermission": "האפליקציה משתמשת בגלריה כדי לבחור תמונה לכרטיסי תקשורת.",
-          "cameraPermission": false,
+          "cameraPermission": "האפליקציה משתמשת במצלמה כדי לצלם תמונה לכרטיסי תקשורת.",
           "microphonePermission": false
         }
       ]
