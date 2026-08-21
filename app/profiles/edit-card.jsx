@@ -8,12 +8,14 @@ import { useProfiles } from "../../context/ProfilesContext";
 
 export default function EditCard() {
   const { boardId, cardId } = useLocalSearchParams();
-  const { boards, updateCard } = useProfiles();
+  const { boards, updateCard, deleteCard } = useProfiles();
   const selectedBoard = boards.find((board) => board.id.toString() === boardId);
   const selectedCard = selectedBoard?.cards.flat().find((card) => card.id.toString() === cardId);
+  const canNavigate = selectedBoard?.isRoot === true;
   const [label, setLabel] = useState(selectedCard?.label ?? "");
   const [spokenText, setSpokenText] = useState(selectedCard?.spokenText ?? "");
   const [imagePath, setImagePath] = useState(selectedCard?.imagePath ?? null); // ערך ברירת המחדל הוא הוא ריק או כתובת התמונה במידה ויש
+  const [cardType, setCardType] = useState(canNavigate ? selectedCard?.cardType ?? "content" : "content");
 
 
   const handleSave = () => {
@@ -32,10 +34,33 @@ export default function EditCard() {
       label: cleanLabel,
       spokenText: cleanSpokenText,
       imagePath,
+      cardType: canNavigate ? cardType : "content",
     });
 
     router.back();
   };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "מחיקת כרטיס",
+      "האם למחוק את הכרטיס? אם זהו כרטיס ניווט, גם הלוח שלו יימחק.",
+      [
+        {
+          text: "ביטול",
+          style: "cancel",
+        },
+        {
+          text: "מחק",
+          style: "destructive",
+          onPress: () => {
+            deleteCard(boardId, cardId);
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
 
   if (!selectedCard) {
     return null;
@@ -100,7 +125,7 @@ export default function EditCard() {
           עריכת תא
         </Text>
 
-        <View className="w-full max-w-3xl flex-row-reverse items-center gap-8">
+        <View className="w-full max-w-5xl flex-row-reverse items-center gap-4">
           <View className="flex-1 gap-4">
             <View>
               <Text className="mb-2 text-right font-bold text-slate-800">
@@ -147,11 +172,61 @@ export default function EditCard() {
                 </Text>
               </Pressable>
 
+
+              {selectedCard.label.trim() !== "" && (
+                <Pressable
+                  onPress={handleDelete}
+                  className="flex-1 items-center rounded-xl bg-rose-200 px-6 py-3 active:bg-rose-300"
+                >
+                  <Text className="font-bold text-rose-950">
+                    מחק
+                  </Text>
+                </Pressable>
+              )}
+
             </View>
 
           </View>
 
-          <View className="w-52 items-center gap-3">
+          {canNavigate && (
+            <View className="w-44">
+              <Text className="mb-2 text-right font-bold text-slate-800">
+                סוג הכרטיס
+              </Text>
+
+              <View className="flex-row gap-3">
+                <Pressable
+                  onPress={() => setCardType("content")}
+                  className={`
+                    flex-1 items-center rounded-xl px-4 py-3
+                    ${cardType === "content"
+                      ? "bg-emerald-200"
+                      : "bg-slate-200"}`}
+                >
+                  <Text className="font-bold text-slate-900">
+                    תוכן
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setCardType("navigation")}
+                  className={`
+                    flex-1 items-center rounded-xl px-4 py-3
+                    ${cardType === "navigation"
+                      ? "bg-indigo-200"
+                      : "bg-slate-200"}`}
+                >
+                  <Text className="font-bold text-slate-900">
+                    ניווט
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+
+
+
+          <View className="w-44 items-center gap-3">
             {imagePath ? (
               <Image source={{ uri: imagePath }} resizeMode="cover" className="h-32 w-32 rounded-xl bg-slate-200" />
             ) : (

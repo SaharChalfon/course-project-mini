@@ -35,6 +35,10 @@ export default function Profile() {
   const [sentenceCards, setSentenceCards] = useState([]); // יצירת "מצב" (סטייט) של רשימת הכרטיסים שנבחרו
 
   const handleCellPress = (card) => {
+    if (card.label.trim() === "") {
+      return;
+    }
+
     if (
       card.cardType === "navigation" &&
       card.targetBoardId !== null
@@ -148,7 +152,7 @@ export default function Profile() {
               <View key={`${card.id}-${index}`} className="flex-row-reverse items-center gap-2 rounded-lg bg-slate-50 px-2 py-1">
                 {card.imagePath ? (
                   <Image source={{ uri: card.imagePath }} resizeMode="cover" className="h-8 w-8 rounded-md bg-slate-200" />
-                ) : ( <Text className="text-lg font-bold text-slate-800">{card.label}</Text>)}
+                ) : (<Text className="text-lg font-bold text-slate-800">{card.label}</Text>)}
               </View> // אם יש תמונה תכנוס התמונה לשורת ההרכבה אם אין אז טקסט
             ))}
           </ScrollView>
