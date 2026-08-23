@@ -36,6 +36,13 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Visual Studio and .NET
+**/.vs/
+**/bin/
+**/obj/
+*.user
+*.suo
+
 app-example
 
 # generated native folders

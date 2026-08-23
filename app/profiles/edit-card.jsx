@@ -172,7 +172,6 @@ export default function EditCard() {
                 </Text>
               </Pressable>
 
-
               {selectedCard.label.trim() !== "" && (
                 <Pressable
                   onPress={handleDelete}

@@ -1,0 +1,40 @@
+﻿@AacApi_HostAddress = http://localhost:5229
+###
+
+PUT http://localhost:5229/api/boards/1/cards/1
+Content-Type: application/json; charset=utf-8
+
+{
+  "label": "אני",
+  "spokenText": "אני",
+  "imagePath": null,
+  "cardType": "content"
+}
+
+
+###
+
+PUT http://localhost:5229/api/boards/1/cards/2
+Content-Type: application/json; charset=utf-8
+
+{
+  "label": "אוכל",
+  "spokenText": "אוכל",
+  "imagePath": null,
+  "cardType": "navigation"
+}
+###
+
+PUT http://localhost:5229/api/boards/1/cards/2
+Content-Type: application/json; charset=utf-8
+
+{
+  "label": "אוכל",
+  "spokenText": "אוכל",
+  "imagePath": null,
+  "cardType": "content"
+}
+
+###
+
+DELETE http://localhost:5229/api/boards/1/cards/2
