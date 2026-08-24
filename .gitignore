@@ -43,6 +43,10 @@ yarn-error.*
 *.user
 *.suo
 
+# uploaded card images
+server/AacApi/AacApi/wwwroot/uploads/*
+!server/AacApi/AacApi/wwwroot/uploads/.gitkeep
+
 app-example
 
 # generated native folders

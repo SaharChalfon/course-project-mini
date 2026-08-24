@@ -7,23 +7,20 @@ export default function CreateProfile() {
   const [name, setName] = useState(""); // state לשינוי השם
   const { addProfile } = useProfiles(); // useProfiles() נותן לקומפוננטה גישה לערכים שה־ProfilesProvider משתף
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const cleanName = name.trim();
 
     if (cleanName === "") {
       Alert.alert("שגיאה", "חובה להזין שם לפרופיל");
       return;
     }
-    const newProfile = {
-      id: Date.now().toString(), // עושה חישוב על התאריך כדי להמציא מזהה ייחודי
-      name: cleanName,
-      imagePath: null,
-      createdAt: new Date().toISOString(),
-    };
 
-    addProfile(newProfile);
-
-    router.replace("/"); // יעני תחזור לroot - מסך הבית
+    try {
+      await addProfile(cleanName);
+      router.replace("/"); // יעני תחזור לroot - מסך הבית
+    } catch {
+      Alert.alert("שגיאה", "לא ניתן היה ליצור את הפרופיל");
+    }
   };
 
   return (

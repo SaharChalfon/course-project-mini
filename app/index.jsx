@@ -21,7 +21,13 @@ export default function Index() {
         { text: "ביטול", style: "cancel" },
         {
           text: "מחק", style: "destructive",
-          onPress: () => { deleteProfile(profileId); }
+          onPress: async () => {
+            try {
+              await deleteProfile(profileId);
+            } catch {
+              Alert.alert("שגיאה", "לא ניתן היה למחוק את הפרופיל");
+            }
+          }
         }, //  // מוחק את הפרופיל ואת הלוחות ששייכים לו
       ]
     );

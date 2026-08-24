@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useProfiles } from "../../context/ProfilesContext";
+import { getImageUrl, useProfiles } from "../../context/ProfilesContext";
 
 
 export default function EditCard() {
@@ -15,10 +15,11 @@ export default function EditCard() {
   const [label, setLabel] = useState(selectedCard?.label ?? "");
   const [spokenText, setSpokenText] = useState(selectedCard?.spokenText ?? "");
   const [imagePath, setImagePath] = useState(selectedCard?.imagePath ?? null); // ערך ברירת המחדל הוא הוא ריק או כתובת התמונה במידה ויש
+  const [selectedImage, setSelectedImage] = useState(null);
   const [cardType, setCardType] = useState(canNavigate ? selectedCard?.cardType ?? "content" : "content");
 
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const cleanLabel = label.trim();
     const cleanSpokenText = spokenText.trim();
 
@@ -30,14 +31,23 @@ export default function EditCard() {
       return;
     }
 
-    updateCard(boardId, cardId, {
-      label: cleanLabel,
-      spokenText: cleanSpokenText,
-      imagePath,
-      cardType: canNavigate ? cardType : "content",
-    });
+    try {
+      await updateCard(
+        boardId,
+        cardId,
+        {
+          label: cleanLabel,
+          spokenText: cleanSpokenText,
+          imagePath,
+          cardType: canNavigate ? cardType : "content",
+        },
+        selectedImage
+      );
 
-    router.back();
+      router.back();
+    } catch {
+      Alert.alert("שגיאה", "לא ניתן היה לשמור את הכרטיס");
+    }
   };
 
   const handleDelete = () => {
@@ -52,9 +62,13 @@ export default function EditCard() {
         {
           text: "מחק",
           style: "destructive",
-          onPress: () => {
-            deleteCard(boardId, cardId);
-            router.back();
+          onPress: async () => {
+            try {
+              await deleteCard(boardId, cardId);
+              router.back();
+            } catch {
+              Alert.alert("שגיאה", "לא ניתן היה למחוק את הכרטיס");
+            }
           },
         },
       ]
@@ -77,7 +91,9 @@ export default function EditCard() {
 
       if (!result.canceled) {
         setImagePath(result.assets[0].uri);
+        setSelectedImage(result.assets[0]);
       }
+
     } catch {
       Alert.alert("שגיאה", "לא ניתן היה לבחור תמונה מהגלריה");
     }
@@ -104,6 +120,7 @@ export default function EditCard() {
 
       if (!result.canceled) {
         setImagePath(result.assets[0].uri);
+        setSelectedImage(result.assets[0]);
       }
     } catch {
       Alert.alert("שגיאה", "לא ניתן היה לצלם תמונה");
@@ -113,8 +130,8 @@ export default function EditCard() {
 
   const handleRemoveImage = () => {
     setImagePath(null);
+    setSelectedImage(null);
   };
-
 
 
 
@@ -227,7 +244,7 @@ export default function EditCard() {
 
           <View className="w-44 items-center gap-3">
             {imagePath ? (
-              <Image source={{ uri: imagePath }} resizeMode="cover" className="h-32 w-32 rounded-xl bg-slate-200" />
+              <Image source={{ uri: getImageUrl(imagePath) }} resizeMode="cover" className="h-32 w-32 rounded-xl bg-slate-200" />
             ) : (
               <View className="h-32 w-32 items-center justify-center rounded-xl bg-slate-200">
                 <Text className="font-bold text-slate-600">אין תמונה</Text>

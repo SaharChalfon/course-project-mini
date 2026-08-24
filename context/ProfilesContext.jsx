@@ -1,210 +1,196 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const ProfilesContext = createContext(null); // null  = deafualt
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-function createEmptyBoardCards(boardId) {
-  return Array.from({ length: 3 }, (_, rowIndex) =>
-    Array.from({ length: 8 }, (_, columnIndex) => {
-      const slotIndex = rowIndex * 8 + columnIndex;
+export function getImageUrl(imagePath) {
+  return imagePath?.startsWith("/uploads/") ? `${API_URL}${imagePath}` : imagePath;
+}
 
-      return {
-        id: `${boardId}-card-${slotIndex}`,
-        boardId,
-        cardType: "content",
-        label: "",
-        spokenText: "",
-        imagePath: null,
-        targetBoardId: null,
-        slotIndex,
-      };
+
+async function getProfilesAndBoards() {
+  const profilesResponse = await fetch(
+    `${API_URL}/api/profiles`
+  );
+
+  if (!profilesResponse.ok) {
+    throw new Error("Failed to load profiles.");
+  }
+
+  const profiles = await profilesResponse.json();
+
+  const boardsByProfile = await Promise.all(
+    profiles.map(async (profile) => {
+      const boardsResponse = await fetch(
+        `${API_URL}/api/profiles/${profile.id}/boards`
+      );
+
+      if (!boardsResponse.ok) {
+        throw new Error(
+          `Failed to load boards for profile ${profile.id}.`
+        );
+      }
+
+      return boardsResponse.json();
     })
   );
+
+  return {
+    profiles,
+    boards: boardsByProfile.flat(),
+  };
 }
-
-function createDefaultBoards(profileId) {
-  const rootBoardId = `${profileId}-root`;
-
-  return [
-    {
-      id: rootBoardId,
-      profileId,
-      parentBoardId: null,
-      name: "ראשי",
-      isRoot: true,
-      cards: createEmptyBoardCards(rootBoardId),
-    },
-  ];
-}
-
-
-const initialProfiles = [
-  {
-    id: 1,
-    name: "פרופיל ראשון",
-    imagePath: null,
-    createdAt: "2026-08-13",
-  },
-  {
-    id: 2,
-    name: "פרופיל שני",
-    imagePath: null,
-    createdAt: "2026-08-13",
-  },
-];
-
-const initialBoards = initialProfiles.flatMap((profile) =>
-  createDefaultBoards(profile.id)
-);
 
 export function ProfilesProvider({ children }) {
 
-  const [profiles, setProfiles] = useState(initialProfiles);
-  const [boards, setBoards] = useState(initialBoards);
+  const [profiles, setProfiles] = useState([]);
+  const [boards, setBoards] = useState([]);
   const [isEditorMode, setIsEditorMode] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await getProfilesAndBoards();
+
+        setProfiles(data.profiles);
+        setBoards(data.boards);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const toggleEditorMode = () => {
     setIsEditorMode((currentMode) => !currentMode);
   };
 
-  const addProfile = (newProfile) => {
-    setProfiles((currentProfiles) => [
-      ...currentProfiles, newProfile]);
-
-    setBoards((currentBoards) => [
-      ...currentBoards,
-      ...createDefaultBoards(newProfile.id)]);
-  };
-
-  const deleteProfile = (profileId) => {
-    setProfiles((currentProfiles) =>
-      currentProfiles.filter(
-        (profile) => profile.id !== profileId
-      )
+  const addProfile = async (name) => {
+    const response = await fetch(
+      `${API_URL}/api/profiles`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name }),
+      }
     );
 
-    setBoards((currentBoards) =>
-      currentBoards.filter(
-        (board) =>
-          board.profileId.toString() !== profileId.toString()
-      )
-    );
+    if (!response.ok) {
+      throw new Error("Failed to create profile.");
+    }
+
+    const data = await getProfilesAndBoards();
+
+    setProfiles(data.profiles);
+    setBoards(data.boards);
   };
 
-  const updateCard = (boardId, cardId, cardChanges) => {
-    setBoards((currentBoards) => {
-      const selectedBoard = currentBoards.find(
-        (board) => board.id.toString() === boardId.toString()
-      );
-
-      const selectedCard = selectedBoard?.cards
-        .flat()
-        .find((card) => card.id.toString() === cardId.toString());
-
-      if (!selectedBoard || !selectedCard) {
-        return currentBoards;
+  const deleteProfile = async (profileId) => {
+    const response = await fetch(
+      `${API_URL}/api/profiles/${profileId}`,
+      {
+        method: "DELETE",
       }
+    );
 
-      let targetBoardId = selectedCard.targetBoardId;
-      let updatedBoards = currentBoards;
+    if (!response.ok) {
+      throw new Error("Failed to delete profile.");
+    }
 
-      if (
-        cardChanges.cardType === "navigation" &&
-        targetBoardId === null
-      ) {
-        const childBoardId = `${selectedCard.id}-board`;
+    const data = await getProfilesAndBoards();
 
-        targetBoardId = childBoardId;
-        updatedBoards = [
-          ...currentBoards,
-          {
-            id: childBoardId,
-            profileId: selectedBoard.profileId,
-            parentBoardId: selectedBoard.id,
-            name: cardChanges.label,
-            isRoot: false,
-            cards: createEmptyBoardCards(childBoardId),
-          },
-        ];
-      }
+    setProfiles(data.profiles);
+    setBoards(data.boards);
+  };
 
-      if (
-        cardChanges.cardType === "navigation" &&
-        targetBoardId !== null
-      ) {
-        updatedBoards = updatedBoards.map((board) =>
-          board.id.toString() === targetBoardId.toString()
-            ? { ...board, name: cardChanges.label }
-            : board
-        );
-      }
+  const updateCard = async (
+    boardId,
+    cardId,
+    cardChanges,
+    imageAsset
+  ) => {
+    let imagePath = cardChanges.imagePath;
 
-      return updatedBoards.map((board) => {
-        if (board.id.toString() !== boardId.toString()) {
-          return board;
-        }
+    if (imageAsset) {
+      const imageType =
+        imageAsset.mimeType ?? "image/jpeg";
 
-        return {
-          ...board,
-          cards: board.cards.map((row) =>
-            row.map((card) =>
-              card.id.toString() === cardId.toString()
-                ? {
-                  ...card,
-                  ...cardChanges,
-                  targetBoardId,
-                }
-                : card
-            )
-          ),
-        };
+      const imageExtension =
+        imageType === "image/jpeg"
+          ? "jpg"
+          : imageType.replace("image/", "");
+
+      const formData = new FormData();
+
+      formData.append("image", {
+        uri: imageAsset.uri,
+        name: `image.${imageExtension}`,
+        type: imageType,
       });
-    });
-  };
 
-  const deleteCard = (boardId, cardId) => {
-    setBoards((currentBoards) => {
-      const selectedBoard = currentBoards.find(
-        (board) => board.id.toString() === boardId.toString()
+      const uploadResponse = await fetch(
+        `${API_URL}/api/images`,
+        {
+          method: "POST",
+          body: formData,
+        }
       );
 
-      const selectedCard = selectedBoard?.cards
-        .flat()
-        .find((card) => card.id.toString() === cardId.toString());
-
-      if (!selectedCard) {
-        return currentBoards;
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image.");
       }
 
-      return currentBoards
-        .filter(
-          (board) =>
-            selectedCard.targetBoardId === null ||
-            board.id.toString() !== selectedCard.targetBoardId.toString()
-        )
-        .map((board) => {
-          if (board.id.toString() !== boardId.toString()) {
-            return board;
-          }
+      const uploadedImage =
+        await uploadResponse.json();
 
-          return {
-            ...board,
-            cards: board.cards.map((row) =>
-              row.map((card) =>
-                card.id.toString() === cardId.toString()
-                  ? {
-                    ...card,
-                    label: "",
-                    spokenText: "",
-                    imagePath: null,
-                    cardType: "content",
-                    targetBoardId: null,
-                  }
-                  : card
-              )
-            ),
-          };
-        });
-    });
+      imagePath = uploadedImage.imagePath;
+    }
+
+    const response = await fetch(
+      `${API_URL}/api/boards/${boardId}/cards/${cardId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          label: cardChanges.label,
+          spokenText: cardChanges.spokenText,
+          imagePath,
+          cardType: cardChanges.cardType,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update card.");
+    }
+
+    const data = await getProfilesAndBoards();
+
+    setProfiles(data.profiles);
+    setBoards(data.boards);
+  };
+
+  const deleteCard = async (boardId, cardId) => {
+    const response = await fetch(
+      `${API_URL}/api/boards/${boardId}/cards/${cardId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to delete card.");
+    }
+
+    const data = await getProfilesAndBoards();
+
+    setProfiles(data.profiles);
+    setBoards(data.boards);
   };
 
 

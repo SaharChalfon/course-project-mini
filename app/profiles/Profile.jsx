@@ -3,8 +3,7 @@ import * as Speech from "expo-speech";
 import { useState } from "react";
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useProfiles } from "../../context/ProfilesContext"; // מחזיר את הערכים שה־Provider משתף
-
+import { getImageUrl, useProfiles } from "../../context/ProfilesContext"; // מחזיר את הערכים שה־Provider משתף
 
 export default function Profile() {
 
@@ -151,7 +150,7 @@ export default function Profile() {
             {sentenceCards.map((card, index) => (
               <View key={`${card.id}-${index}`} className="flex-row-reverse items-center gap-2 rounded-lg bg-slate-50 px-2 py-1">
                 {card.imagePath ? (
-                  <Image source={{ uri: card.imagePath }} resizeMode="cover" className="h-8 w-8 rounded-md bg-slate-200" />
+                  <Image source={{ uri: getImageUrl(card.imagePath) }} resizeMode="cover" className="h-8 w-8 rounded-md bg-slate-200" />
                 ) : (<Text className="text-lg font-bold text-slate-800">{card.label}</Text>)}
               </View> // אם יש תמונה תכנוס התמונה לשורת ההרכבה אם אין אז טקסט
             ))}
@@ -190,7 +189,7 @@ export default function Profile() {
                   >
                     {card.imagePath && (
                       <Image
-                        source={{ uri: card.imagePath }}
+                        source={{ uri: getImageUrl(card.imagePath) }}
                         resizeMode="cover"
                         className="mb-1 h-10 w-10 rounded-md bg-slate-200"
                       />

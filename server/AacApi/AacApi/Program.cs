@@ -1,4 +1,3 @@
-
 namespace AacApi
 {
     public class Program
@@ -21,6 +20,8 @@ namespace AacApi
             {
                 app.MapOpenApi();
             }
+
+            app.UseStaticFiles(); // UseStaticFiles מאפשר גישה לקבצים שבתיקיית wwwroot.
 
             app.UseAuthorization();
 
