@@ -252,13 +252,13 @@ export default function EditCard() {
             )}
 
             <View className="w-full flex-row gap-3">
-              <Pressable onPress={handlePickImage} className="flex-1 items-center rounded-xl bg-sky-200 px-4 py-3 active:bg-sky-300">
+              <Pressable onPress={handlePickImage} className="flex-1 items-center rounded-xl bg-sky-200 px-2 py-3 active:bg-sky-300">
                 <Text className="font-bold text-sky-950">
                   גלריה
                 </Text>
               </Pressable>
 
-              <Pressable onPress={handleTakePhoto} className="flex-1 items-center rounded-xl bg-violet-200 px-4 py-3 active:bg-violet-300">
+              <Pressable onPress={handleTakePhoto} className="flex-1 items-center rounded-xl bg-violet-200 px-2 py-3 active:bg-violet-300">
                 <Text className="font-bold text-violet-950">
                   מצלמה
                 </Text>
