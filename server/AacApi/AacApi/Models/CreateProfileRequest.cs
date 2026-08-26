@@ -16,5 +16,7 @@
                 _name = value;
             }
         }
+
+        public string? ImagePath { get; set; }
     }
 }

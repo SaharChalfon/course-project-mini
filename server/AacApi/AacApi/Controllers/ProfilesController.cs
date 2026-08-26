@@ -68,6 +68,12 @@ namespace AacApi.Controllers
         [FromBody] CreateProfileRequest request)
         {
             var cleanName = request.Name?.Trim() ?? "";
+            var imagePath = request.ImagePath?.Trim();
+
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                imagePath = null;
+            }
 
             if (cleanName == "")
             {
@@ -80,6 +86,13 @@ namespace AacApi.Controllers
             {
                 return BadRequest(
                     "שם פרופיל יכול להכיל עד 100 תווים."
+                );
+            }
+
+            if (imagePath?.Length > 1000)
+            {
+                return BadRequest(
+                    "נתיב התמונה ארוך מדי."
                 );
             }
 
@@ -123,7 +136,7 @@ namespace AacApi.Controllers
                     VALUES
                     (
                         @Name,
-                        NULL,
+                        @ImagePath,
                         @CreatedAt
                     );
 
@@ -189,8 +202,7 @@ namespace AacApi.Controllers
                     SELECT
                         @ProfileId AS Id,
                         @Name AS Name,
-                        CAST(NULL AS NVARCHAR(1000))
-                            AS ImagePath,
+                        @ImagePath AS ImagePath,
                         @CreatedAt AS CreatedAt;
                 ";
 
@@ -210,6 +222,16 @@ namespace AacApi.Controllers
                             100
                         )
                         .Value = cleanName;
+
+                    command.Parameters
+                        .Add(
+                            "@ImagePath",
+                            SqlDbType.NVarChar,
+                            1000
+                        )
+                        .Value =
+                            (object?)imagePath
+                            ?? DBNull.Value;
 
                     await using var reader =
                         await command.ExecuteReaderAsync();
@@ -374,6 +396,177 @@ namespace AacApi.Controllers
             }
 
             return Ok(boards);
+        }
+
+        [HttpGet("{profileId:int}/spoken-sentences")]
+        public async Task<ActionResult<List<SpokenSentence>>> GetSpokenSentences(
+            int profileId
+        )
+        {
+            var sentences = new List<SpokenSentence>();
+
+            await using var connection =
+                new SqlConnection(_connectionString);
+
+            await connection.OpenAsync();
+
+            const string sql = @"
+                SELECT
+                    Id,
+                    ProfileId,
+                    DisplayText,
+                    SpokenText,
+                    CreatedAt
+                FROM dbo.SpokenSentences
+                WHERE ProfileId = @ProfileId
+                ORDER BY CreatedAt DESC, Id DESC;
+            ";
+
+            await using var command =
+                new SqlCommand(sql, connection);
+
+            command.Parameters
+                .Add(
+                    "@ProfileId",
+                    SqlDbType.Int
+                )
+                .Value = profileId;
+
+            await using var reader =
+                await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                sentences.Add(
+                    new SpokenSentence
+                    {
+                        Id = reader.GetInt32(0),
+                        ProfileId = reader.GetInt32(1),
+                        DisplayText = reader.GetString(2),
+                        SpokenText = reader.GetString(3),
+                        CreatedAt = DateTime.SpecifyKind(
+                            reader.GetDateTime(4),
+                            DateTimeKind.Utc
+                        )
+                    }
+                );
+            }
+
+            return Ok(sentences);
+        }
+
+        [HttpPost("{profileId:int}/spoken-sentences")]
+        public async Task<ActionResult<SpokenSentence>> CreateSpokenSentence(
+            int profileId,
+            [FromBody] CreateSpokenSentenceRequest request
+        )
+        {
+            var cleanDisplayText =
+                request.DisplayText?.Trim() ?? "";
+
+            var cleanSpokenText =
+                request.SpokenText?.Trim() ?? "";
+
+            if (
+                cleanDisplayText == ""
+                || cleanSpokenText == ""
+            )
+            {
+                return BadRequest(
+                    "לא ניתן לשמור משפט ריק."
+                );
+            }
+
+            if (
+                cleanDisplayText.Length > 2000
+                || cleanSpokenText.Length > 2000
+            )
+            {
+                return BadRequest(
+                    "המשפט יכול להכיל עד 2000 תווים."
+                );
+            }
+
+            await using var connection =
+                new SqlConnection(_connectionString);
+
+            await connection.OpenAsync();
+
+            const string sql = @"
+                INSERT INTO dbo.SpokenSentences
+                (
+                    ProfileId,
+                    DisplayText,
+                    SpokenText,
+                    CreatedAt
+                )
+                OUTPUT
+                    inserted.Id,
+                    inserted.ProfileId,
+                    inserted.DisplayText,
+                    inserted.SpokenText,
+                    inserted.CreatedAt
+                SELECT
+                    Profiles.Id,
+                    @DisplayText,
+                    @SpokenText,
+                    SYSUTCDATETIME()
+                FROM dbo.Profiles AS Profiles
+                WHERE Profiles.Id = @ProfileId;
+            ";
+
+            await using var command =
+                new SqlCommand(sql, connection);
+
+            command.Parameters
+                .Add(
+                    "@ProfileId",
+                    SqlDbType.Int
+                )
+                .Value = profileId;
+
+            command.Parameters
+                .Add(
+                    "@DisplayText",
+                    SqlDbType.NVarChar,
+                    2000
+                )
+                .Value = cleanDisplayText;
+
+            command.Parameters
+                .Add(
+                    "@SpokenText",
+                    SqlDbType.NVarChar,
+                    2000
+                )
+                .Value = cleanSpokenText;
+
+            await using var reader =
+                await command.ExecuteReaderAsync();
+
+            if (!await reader.ReadAsync())
+            {
+                return NotFound(
+                    "הפרופיל לא נמצא."
+                );
+            }
+
+            var createdSentence = new SpokenSentence
+            {
+                Id = reader.GetInt32(0),
+                ProfileId = reader.GetInt32(1),
+                DisplayText = reader.GetString(2),
+                SpokenText = reader.GetString(3),
+                CreatedAt = DateTime.SpecifyKind(
+                    reader.GetDateTime(4),
+                    DateTimeKind.Utc
+                )
+            };
+
+            return StatusCode(
+                StatusCodes.Status201Created,
+                createdSentence
+            );
         }
 
         [HttpDelete("{profileId:int}")]

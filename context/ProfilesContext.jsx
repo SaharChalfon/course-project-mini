@@ -7,6 +7,52 @@ export function getImageUrl(imagePath) {
   return imagePath?.startsWith("/uploads/") ? `${API_URL}${imagePath}` : imagePath;
 }
 
+async function uploadImage(imageAsset) {
+  const imageType =
+    imageAsset.mimeType ?? "image/jpeg";
+
+  const imageExtension =
+    imageType === "image/jpeg"
+      ? "jpg"
+      : imageType.replace("image/", "");
+
+  const formData = new FormData();
+
+  formData.append("image", {
+    uri: imageAsset.uri,
+    name: `image.${imageExtension}`,
+    type: imageType,
+  });
+
+  const response = await fetch(
+    `${API_URL}/api/images`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to upload image.");
+  }
+
+  const uploadedImage = await response.json();
+
+  return uploadedImage.imagePath;
+}
+
+export async function getSpokenSentences(profileId) {
+  const response = await fetch(
+    `${API_URL}/api/profiles/${profileId}/spoken-sentences`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to load spoken sentences.");
+  }
+
+  return response.json();
+}
+
 
 async function getProfilesAndBoards() {
   const profilesResponse = await fetch(
@@ -66,7 +112,11 @@ export function ProfilesProvider({ children }) {
     setIsEditorMode((currentMode) => !currentMode);
   };
 
-  const addProfile = async (name) => {
+  const addProfile = async (name, imageAsset) => {
+    const imagePath = imageAsset
+      ? await uploadImage(imageAsset)
+      : null;
+
     const response = await fetch(
       `${API_URL}/api/profiles`,
       {
@@ -74,7 +124,7 @@ export function ProfilesProvider({ children }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, imagePath }),
       }
     );
 
@@ -115,38 +165,7 @@ export function ProfilesProvider({ children }) {
     let imagePath = cardChanges.imagePath;
 
     if (imageAsset) {
-      const imageType =
-        imageAsset.mimeType ?? "image/jpeg";
-
-      const imageExtension =
-        imageType === "image/jpeg"
-          ? "jpg"
-          : imageType.replace("image/", "");
-
-      const formData = new FormData();
-
-      formData.append("image", {
-        uri: imageAsset.uri,
-        name: `image.${imageExtension}`,
-        type: imageType,
-      });
-
-      const uploadResponse = await fetch(
-        `${API_URL}/api/images`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image.");
-      }
-
-      const uploadedImage =
-        await uploadResponse.json();
-
-      imagePath = uploadedImage.imagePath;
+      imagePath = await uploadImage(imageAsset);
     }
 
     const response = await fetch(
@@ -193,6 +212,32 @@ export function ProfilesProvider({ children }) {
     setBoards(data.boards);
   };
 
+  const saveSpokenSentence = async (
+    profileId,
+    displayText,
+    spokenText
+  ) => {
+    const response = await fetch(
+      `${API_URL}/api/profiles/${profileId}/spoken-sentences`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          displayText,
+          spokenText,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to save spoken sentence.");
+    }
+
+    return response.json();
+  };
+
 
   return (
     <ProfilesContext.Provider
@@ -204,6 +249,7 @@ export function ProfilesProvider({ children }) {
         deleteProfile,
         updateCard,
         deleteCard,
+        saveSpokenSentence,
         toggleEditorMode,
       }}
     >

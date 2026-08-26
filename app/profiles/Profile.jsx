@@ -1,14 +1,14 @@
 import { Link, router, useLocalSearchParams } from "expo-router"; // מאפשרת לקומפוננטה לקרוא פרמטרים שהגיעו דרך הכתובת
 import * as Speech from "expo-speech";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getImageUrl, useProfiles } from "../../context/ProfilesContext"; // מחזיר את הערכים שה־Provider משתף
 
 export default function Profile() {
 
   const { profileId } = useLocalSearchParams(); //  מחזיר אובייקט המכיל את הפרמטרים של המסך הנוכחי
-  const { profiles, boards, isEditorMode } = useProfiles();
+  const { profiles, boards, isEditorMode, saveSpokenSentence } = useProfiles();
 
   const selectedProfile = profiles.find( // find() מחפשת את האיבר הראשון במערך שעומד בתנאי
     (profile) => profile.id.toString() === profileId // אם הביטוי שקר ממשיך הלאה אם הביטוי אמת מחזיר את האובייקט הנוכחי
@@ -70,20 +70,29 @@ export default function Profile() {
     setSentenceCards([]); // מחליפה את רשימת הכרטיסים במערך ריק
   };
 
-  const handlePlay = () => { // פונקציה לטיפול בניגון
+  const handlePlay = async () => { // פונקציה לטיפול בניגון
     if (sentenceCards.length === 0) {
       return; // מונע ניסיון להקריא משפט ריק
     }
 
-
-    const sentence = sentenceCards.map((card) => card.spokenText).join(" ");
+    const displaySentence = sentenceCards.map((card) => card.label).join(" ");
+    const spokenSentence = sentenceCards.map((card) => card.spokenText).join(" ");
     // עובר על רשימת האובייקטים (כרטיסים) ומחבר את כל מילות המשפט עם רווח בינהן
 
-    Speech.speak(sentence, {
+    Speech.speak(spokenSentence, {
       language: "he-IL", // שולח את המשפט למנגנון ההקראה של המכשיר ומבקש קול בעברית
       rate: 0.6,
-
     });
+
+    try {
+      await saveSpokenSentence(
+        selectedProfile.id,
+        displaySentence,
+        spokenSentence
+      );
+    } catch {
+      Alert.alert("שגיאה", "המשפט הושמע אך לא נשמר בהיסטוריה");
+    }
   };
 
   const handleHomePress = () => {
