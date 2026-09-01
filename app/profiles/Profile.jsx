@@ -84,6 +84,11 @@ export default function Profile() {
       rate: 0.6,
     });
 
+    // במצב עורך מקריאים את המשפט בלי לשמור אותו בהיסטוריה
+    if (isEditorMode) {
+      return;
+    }
+
     try {
       await saveSpokenSentence(
         selectedProfile.id,

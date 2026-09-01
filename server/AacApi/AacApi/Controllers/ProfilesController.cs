@@ -268,6 +268,110 @@ namespace AacApi.Controllers
             }
         }
 
+        [HttpPut("{profileId:int}")]
+        public async Task<ActionResult<Profile>> UpdateProfile(
+            int profileId,
+            [FromBody] UpdateProfileRequest request
+        )
+        {
+            var cleanName = request.Name?.Trim() ?? "";
+            var imagePath = request.ImagePath?.Trim();
+
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                imagePath = null;
+            }
+
+            if (cleanName == "")
+            {
+                return BadRequest(
+                    "חובה להזין שם לפרופיל."
+                );
+            }
+
+            if (cleanName.Length > 100)
+            {
+                return BadRequest(
+                    "שם פרופיל יכול להכיל עד 100 תווים."
+                );
+            }
+
+            if (imagePath?.Length > 1000)
+            {
+                return BadRequest(
+                    "נתיב התמונה ארוך מדי."
+                );
+            }
+
+            await using var connection =
+                new SqlConnection(_connectionString);
+
+            await connection.OpenAsync();
+
+            const string sql = @"
+                UPDATE dbo.Profiles
+                SET
+                    Name = @Name,
+                    ImagePath = @ImagePath
+                OUTPUT
+                    inserted.Id,
+                    inserted.Name,
+                    inserted.ImagePath,
+                    inserted.CreatedAt
+                WHERE Id = @ProfileId;
+            ";
+
+            await using var command =
+                new SqlCommand(sql, connection);
+
+            command.Parameters
+                .Add(
+                    "@ProfileId",
+                    SqlDbType.Int
+                )
+                .Value = profileId;
+
+            command.Parameters
+                .Add(
+                    "@Name",
+                    SqlDbType.NVarChar,
+                    100
+                )
+                .Value = cleanName;
+
+            command.Parameters
+                .Add(
+                    "@ImagePath",
+                    SqlDbType.NVarChar,
+                    1000
+                )
+                .Value =
+                    (object?)imagePath
+                    ?? DBNull.Value;
+
+            await using var reader =
+                await command.ExecuteReaderAsync();
+
+            if (!await reader.ReadAsync())
+            {
+                return NotFound(
+                    "הפרופיל לא נמצא."
+                );
+            }
+
+            var updatedProfile = new Profile
+            {
+                Id = reader.GetInt32(0),
+                Name = reader.GetString(1),
+                ImagePath = reader.IsDBNull(2)
+                    ? null
+                    : reader.GetString(2),
+                CreatedAt = reader.GetDateTime(3)
+            };
+
+            return Ok(updatedProfile);
+        }
+
         [HttpGet("{profileId:int}/boards")]
         public async Task<ActionResult<List<Board>>> GetProfileBoards(
             int profileId

@@ -1,7 +1,7 @@
 import { Link } from "expo-router";
 import { styled } from 'nativewind';
 import { useState } from "react";
-import { Alert, Image, Keyboard, Pressable, Text, TextInput, View } from "react-native";
+import { Image, Keyboard, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { getImageUrl, useProfiles } from "../context/ProfilesContext";
 
@@ -11,7 +11,7 @@ const EDITOR_PIN = "1234";
 
 export default function Index() {
 
-  const { profiles, deleteProfile, isEditorMode, toggleEditorMode } = useProfiles();
+  const { profiles, isEditorMode, toggleEditorMode } = useProfiles();
   const [isPinModalVisible, setIsPinModalVisible] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
@@ -42,26 +42,6 @@ export default function Index() {
 
     toggleEditorMode();
     closePinModal();
-  };
-
-  const handleDelete = (profileId) => { // פונקציה שמטפלת במחיקת פרופיל 
-    Alert.alert(
-      "מחיקת פרופיל",
-      "האם אתה בטוח שברצונך למחוק את הפרופיל?",
-      [
-        { text: "ביטול", style: "cancel" },
-        {
-          text: "מחק", style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteProfile(profileId);
-            } catch {
-              Alert.alert("שגיאה", "לא ניתן היה למחוק את הפרופיל");
-            }
-          }
-        }, //  // מוחק את הפרופיל ואת הלוחות ששייכים לו
-      ]
-    );
   };
 
   return (
@@ -141,17 +121,21 @@ export default function Index() {
                   </Pressable>
                 </Link>
 
-                <Pressable
-                  onPress={() => handleDelete(profile.id)}
-                  className="
-                    items-center rounded-lg
-                    bg-rose-200 px-4 py-3
-                    active:bg-rose-300"
+                <Link
+                  href={{
+                    pathname: "/profiles/settings",
+                    params: {
+                      profileId: profile.id.toString(),
+                    },
+                  }}
+                  asChild
                 >
-                  <Text className="font-bold text-rose-950">
-                    מחק
-                  </Text>
-                </Pressable>
+                  <Pressable className="items-center rounded-lg bg-amber-200 px-4 py-3 active:bg-amber-300">
+                    <Text className="font-bold text-amber-950">
+                      הגדרות
+                    </Text>
+                  </Pressable>
+                </Link>
               </>
             )}
           </View>

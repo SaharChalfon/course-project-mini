@@ -138,6 +138,41 @@ export function ProfilesProvider({ children }) {
     setBoards(data.boards);
   };
 
+  const updateProfile = async (
+    profileId,
+    profileChanges,
+    imageAsset
+  ) => {
+    let imagePath = profileChanges.imagePath;
+
+    if (imageAsset) {
+      imagePath = await uploadImage(imageAsset);
+    }
+
+    const response = await fetch(
+      `${API_URL}/api/profiles/${profileId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: profileChanges.name,
+          imagePath,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update profile.");
+    }
+
+    const data = await getProfilesAndBoards();
+
+    setProfiles(data.profiles);
+    setBoards(data.boards);
+  };
+
   const deleteProfile = async (profileId) => {
     const response = await fetch(
       `${API_URL}/api/profiles/${profileId}`,
@@ -246,6 +281,7 @@ export function ProfilesProvider({ children }) {
         boards,
         isEditorMode,
         addProfile,
+        updateProfile,
         deleteProfile,
         updateCard,
         deleteCard,
