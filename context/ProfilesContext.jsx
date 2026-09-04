@@ -41,7 +41,7 @@ async function uploadImage(imageAsset) {
   return uploadedImage.imagePath;
 }
 
-export async function getSpokenSentences(profileId) {
+async function getSpokenSentences(profileId) {
   const response = await fetch(
     `${API_URL}/api/profiles/${profileId}/spoken-sentences`
   );
@@ -298,6 +298,17 @@ export function ProfilesProvider({ children }) {
     return savedSentence;
   };
 
+  const loadSpokenSentences = async (profileId) => {
+    const loadedSentences = await getSpokenSentences(profileId);
+
+    setSpokenSentences((currentSentences) => [
+      ...loadedSentences,
+      ...currentSentences.filter(
+        (sentence) => sentence.profileId !== profileId
+      ),
+    ]);
+  };
+
 
   return (
     <ProfilesContext.Provider
@@ -312,6 +323,7 @@ export function ProfilesProvider({ children }) {
         updateCard,
         deleteCard,
         saveSpokenSentence,
+        loadSpokenSentences,
         toggleEditorMode,
       }}
     >

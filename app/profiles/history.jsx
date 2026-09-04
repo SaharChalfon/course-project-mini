@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getSpokenSentences, useProfiles } from "../../context/ProfilesContext";
+import { useProfiles } from "../../context/ProfilesContext";
 
 export default function SpokenSentencesHistory() {
   const { profileId } = useLocalSearchParams();
@@ -10,49 +9,14 @@ export default function SpokenSentencesHistory() {
     ? profileId[0]
     : profileId;
 
-  const { profiles } = useProfiles();
+  const { profiles, spokenSentences } = useProfiles();
   const selectedProfile = profiles.find(
     (profile) => profile.id.toString() === normalizedProfileId
   );
-
-  const [sentences, setSentences] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-
-  useEffect(() => {
-    let isActive = true;
-
-    const loadSentences = async () => {
-      if (!normalizedProfileId) {
-        setLoadError("הפרופיל לא נמצא");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const data = await getSpokenSentences(normalizedProfileId);
-
-        if (isActive) {
-          setSentences(data);
-          setLoadError("");
-        }
-      } catch {
-        if (isActive) {
-          setLoadError("לא ניתן היה לטעון את היסטוריית המשפטים");
-        }
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadSentences();
-
-    return () => {
-      isActive = false;
-    };
-  }, [normalizedProfileId]);
+  const sentences = spokenSentences.filter(
+    (sentence) =>
+      sentence.profileId.toString() === normalizedProfileId
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -72,19 +36,7 @@ export default function SpokenSentencesHistory() {
           </Text>
         </View>
 
-        {isLoading ? (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-lg font-bold text-slate-600">
-              טוען היסטוריה...
-            </Text>
-          </View>
-        ) : loadError !== "" ? (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-lg font-bold text-rose-700">
-              {loadError}
-            </Text>
-          </View>
-        ) : sentences.length === 0 ? (
+        {sentences.length === 0 ? (
           <View className="flex-1 items-center justify-center">
             <Text className="text-lg font-bold text-slate-600">
               עדיין לא נשמרו משפטים עבור הפרופיל
