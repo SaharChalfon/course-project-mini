@@ -1,7 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, Switch, Text, TextInput, View } from "react-native";
 import { getImageUrl, useProfiles } from "../../context/ProfilesContext";
 
 export default function ProfileSettings() {
@@ -16,16 +16,26 @@ export default function ProfileSettings() {
   );
 
   const [name, setName] = useState(selectedProfile?.name ?? "");
+
   const [imagePath, setImagePath] = useState(
     selectedProfile?.imagePath ?? null
   );
+
   const [selectedImage, setSelectedImage] = useState(null);
+
+  const [predictionEnabled, setPredictionEnabled] =
+    useState(
+      selectedProfile?.predictionEnabled ?? false
+    );
 
   useEffect(() => {
     if (selectedProfile) {
       setName(selectedProfile.name);
       setImagePath(selectedProfile.imagePath ?? null);
       setSelectedImage(null);
+      setPredictionEnabled(
+        selectedProfile.predictionEnabled ?? false
+      );
     }
   }, [selectedProfile]);
 
@@ -86,6 +96,7 @@ export default function ProfileSettings() {
         {
           name: cleanName,
           imagePath,
+          predictionEnabled,
         },
         selectedImage
       );
@@ -142,6 +153,33 @@ export default function ProfileSettings() {
             maxLength={100}
             className="w-80 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base"
           />
+
+          <View className="mt-4 w-80 flex-row-reverse items-center justify-between rounded-xl bg-indigo-100 px-4 py-2">
+            <View>
+              <Text className="text-right font-bold text-indigo-950">
+                חיזוי המילה הבאה
+              </Text>
+
+              <Text className="text-right text-sm text-slate-600">
+                {predictionEnabled ? "פעיל" : "כבוי"}
+              </Text>
+            </View>
+
+            <Switch
+              value={predictionEnabled}
+              onValueChange={setPredictionEnabled}
+              trackColor={{
+                false: "#cbd5e1",
+                true: "#a5b4fc",
+              }}
+              thumbColor={
+                predictionEnabled
+                  ? "#4338ca"
+                  : "#64748b"
+              }
+            />
+          </View>
+
         </View>
 
         <View className="w-40 items-center gap-2">

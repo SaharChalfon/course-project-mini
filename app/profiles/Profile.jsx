@@ -5,10 +5,114 @@ import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getImageUrl, useProfiles } from "../../context/ProfilesContext"; // מחזיר את הערכים שה־Provider משתף
 
+function normalizeWord(word) {
+  return word
+    .normalize("NFD")
+    .replace(/[\u0591-\u05C7]/g, "")
+    .replace(/[.,!?;:״׳"'()[\]{}]/g, "")
+    .trim();
+}
+
+function countPrediction(predictions, key, nextWord) {
+  if (key === "" || nextWord === "") {
+    return;
+  }
+
+  const nextWords = predictions.get(key) ?? new Map();
+
+  nextWords.set(
+    nextWord,
+    (nextWords.get(nextWord) ?? 0) + 1
+  );
+
+  predictions.set(key, nextWords);
+}
+
+function findMostCommon(nextWords) {
+  let selectedWord = "";
+  let highestCount = 0;
+
+  nextWords?.forEach((count, word) => {
+    if (count > highestCount) {
+      selectedWord = word;
+      highestCount = count;
+    }
+  });
+
+  return selectedWord;
+}
+
+function predictNextWord(sentenceCards, history) {
+  const currentWords = sentenceCards.flatMap((card) =>
+    card.spokenText.trim().split(/\s+/).filter(Boolean)
+  );
+
+  if (currentWords.length === 0) {
+    return "";
+  }
+
+  const bigrams = new Map();
+  const trigrams = new Map();
+
+  history.forEach((sentence) => {
+    const words = sentence.spokenText
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    for (let index = 0; index < words.length; index++) {
+      const currentWord = normalizeWord(words[index]);
+
+      if (index + 1 < words.length) {
+        countPrediction(
+          bigrams,
+          currentWord,
+          words[index + 1]
+        );
+      }
+
+      if (index + 2 < words.length) {
+        const trigramKey =
+          `${currentWord} ${normalizeWord(words[index + 1])}`;
+
+        countPrediction(
+          trigrams,
+          trigramKey,
+          words[index + 2]
+        );
+      }
+    }
+  });
+
+  if (currentWords.length >= 2) {
+    const trigramKey = currentWords
+      .slice(-2)
+      .map(normalizeWord)
+      .join(" ");
+
+    const trigramPrediction =
+      findMostCommon(trigrams.get(trigramKey));
+
+    if (trigramPrediction !== "") {
+      return trigramPrediction;
+    }
+  }
+
+  const lastWord = normalizeWord(currentWords.at(-1));
+
+  return findMostCommon(bigrams.get(lastWord));
+}
+
 export default function Profile() {
 
   const { profileId } = useLocalSearchParams(); //  מחזיר אובייקט המכיל את הפרמטרים של המסך הנוכחי
-  const { profiles, boards, isEditorMode, saveSpokenSentence } = useProfiles();
+  const {
+    profiles,
+    boards,
+    spokenSentences,
+    isEditorMode,
+    saveSpokenSentence,
+  } = useProfiles();
 
   const selectedProfile = profiles.find( // find() מחפשת את האיבר הראשון במערך שעומד בתנאי
     (profile) => profile.id.toString() === profileId // אם הביטוי שקר ממשיך הלאה אם הביטוי אמת מחזיר את האובייקט הנוכחי
@@ -32,6 +136,31 @@ export default function Profile() {
   ); // מוצא בלוחות הפרופיל את הלוח שהמזהה שלו שווה למזהה הלוח הנוכחי
 
   const [sentenceCards, setSentenceCards] = useState([]); // יצירת "מצב" (סטייט) של רשימת הכרטיסים שנבחרו
+
+  const spokenHistory = spokenSentences.filter(
+    (sentence) =>
+      sentence.profileId.toString() === profileId
+  );
+
+  const displaySentence = sentenceCards
+    .map((card) => card.label)
+    .join(" ");
+
+  const spokenSentence = sentenceCards
+    .map((card) => card.spokenText)
+    .join(" ");
+
+  const predictedWord = selectedProfile?.predictionEnabled
+    ? predictNextWord(sentenceCards, spokenHistory)
+    : "";
+
+  const predictedDisplaySentence = predictedWord
+    ? `${displaySentence} ${predictedWord}`
+    : "";
+
+  const predictedSpokenSentence = predictedWord
+    ? `${spokenSentence} ${predictedWord}`
+    : "";
 
   const handleCellPress = (card) => {
     if (card.label.trim() === "") {
@@ -75,8 +204,6 @@ export default function Profile() {
       return; // מונע ניסיון להקריא משפט ריק
     }
 
-    const displaySentence = sentenceCards.map((card) => card.label).join(" ");
-    const spokenSentence = sentenceCards.map((card) => card.spokenText).join(" ");
     // עובר על רשימת האובייקטים (כרטיסים) ומחבר את כל מילות המשפט עם רווח בינהן
 
     Speech.speak(spokenSentence, {
@@ -97,6 +224,34 @@ export default function Profile() {
       );
     } catch {
       Alert.alert("שגיאה", "המשפט הושמע אך לא נשמר בהיסטוריה");
+    }
+  };
+
+  const handlePlayPrediction = async () => {
+    if (predictedWord === "") {
+      return;
+    }
+
+    Speech.speak(predictedSpokenSentence, {
+      language: "he-IL",
+      rate: 0.6,
+    });
+
+    if (isEditorMode) {
+      return;
+    }
+
+    try {
+      await saveSpokenSentence(
+        selectedProfile.id,
+        predictedDisplaySentence,
+        predictedSpokenSentence
+      );
+    } catch {
+      Alert.alert(
+        "שגיאה",
+        "החיזוי הושמע אך לא נשמר בהיסטוריה"
+      );
     }
   };
 
@@ -138,49 +293,97 @@ export default function Profile() {
 
         </View>
 
-        <View className="mb-3 h-20 flex-row">
+        <View
+          className={`mb-3 gap-2 ${selectedProfile.predictionEnabled
+            ? "h-24"
+            : "h-20"}`}
+        >
+          <View className="flex-1 flex-row">
+            <Pressable
+              onPress={handleDeleteLast}
+              onLongPress={handleClearSentence}
+              className="w-24 items-center justify-center rounded-xl bg-red-600 active:bg-red-700"
+            >
+              <Text className="text-base font-bold text-white">
+                מחק
+              </Text>
+            </Pressable>
 
-          <Pressable
-            onPress={handleDeleteLast}
-            onLongPress={handleClearSentence}
-            className="w-24 items-center justify-center rounded-xl bg-red-600 active:bg-red-700"
-          >
-            <Text className="text-base font-bold text-white">
-              מחק
-            </Text>
-          </Pressable>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mx-3 flex-1 overflow-hidden rounded-xl border-2 border-slate-300 bg-white"
+              contentContainerStyle={{
+                flexGrow: 1,
+                flexDirection: "row-reverse",
+                alignItems: "center",
+                gap: 8,
+                paddingHorizontal: 12,
+              }}
+            >
+              {sentenceCards.map((card, index) => (
+                <View
+                  key={`${card.id}-${index}`}
+                  className="flex-row-reverse items-center gap-2 rounded-lg bg-slate-50 px-2 py-1"
+                >
+                  {card.imagePath ? (
+                    <Image
+                      source={{ uri: getImageUrl(card.imagePath) }}
+                      resizeMode="cover"
+                      className="h-8 w-8 rounded-md bg-slate-200"
+                    />
+                  ) : (
+                    <Text className="text-lg font-bold text-slate-800">
+                      {card.label}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
 
-          <ScrollView // שורת ההרכבה
-            horizontal showsHorizontalScrollIndicator={false} // מאפשר גלילה לצדדים בלבד ומסתיר את פס הגלילה
-            className="mx-3 flex-1 overflow-hidden rounded-xl border-2 border-slate-300 bg-white"
-            contentContainerStyle={{
-              flexGrow: 1,
-              flexDirection: "row-reverse",
-              alignItems: "center",
-              gap: 8,
-              paddingHorizontal: 12,
-            }}
-          >
-            {sentenceCards.map((card, index) => (
-              <View key={`${card.id}-${index}`} className="flex-row-reverse items-center gap-2 rounded-lg bg-slate-50 px-2 py-1">
-                {card.imagePath ? (
-                  <Image source={{ uri: getImageUrl(card.imagePath) }} resizeMode="cover" className="h-8 w-8 rounded-md bg-slate-200" />
-                ) : (<Text className="text-lg font-bold text-slate-800">{card.label}</Text>)}
-              </View> // אם יש תמונה תכנוס התמונה לשורת ההרכבה אם אין אז טקסט
-            ))}
-          </ScrollView>
+            <Pressable
+              onPress={handlePlay}
+              className="w-24 items-center justify-center rounded-xl bg-green-600 active:bg-green-700"
+            >
+              <Text className="text-base font-bold text-white">
+                נגן
+              </Text>
+            </Pressable>
+          </View>
 
+          {selectedProfile.predictionEnabled && (
+            <View className="flex-1 flex-row">
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mx-3 flex-1 overflow-hidden rounded-xl border-2 border-indigo-200 bg-indigo-50"
+                contentContainerStyle={{
+                  flexGrow: 1,
+                  flexDirection: "row-reverse",
+                  alignItems: "center",
+                  paddingHorizontal: 12,
+                }}
+              >
+                {predictedDisplaySentence !== "" && (
+                  <Text className="text-base font-bold text-indigo-950">
+                    {predictedDisplaySentence}
+                  </Text>
+                )}
+              </ScrollView>
 
-          <Pressable
-            onPress={handlePlay}
-            className="w-24 items-center justify-center rounded-xl bg-green-600 active:bg-green-700"
-          >
-            <Text className="text-base font-bold text-white">
-              נגן
-            </Text>
-          </Pressable>
-
-
+              <Pressable
+                onPress={handlePlayPrediction}
+                disabled={predictedWord === ""}
+                className={`w-24 items-center justify-center rounded-xl ${predictedWord === ""
+                  ? "bg-slate-300"
+                  : "bg-indigo-600 active:bg-indigo-700"}`}
+              >
+                <Text className="text-center text-sm font-bold text-white">
+                  השמע חיזוי
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         <View className="flex-1 rounded-xl bg-slate-200 p-1">

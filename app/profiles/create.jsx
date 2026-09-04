@@ -43,8 +43,8 @@ export default function CreateProfile() {
   };
 
   return (
-    <View className="flex-1 items-center justify-center bg-background p-6">
-      <Text className="mb-6 text-2xl font-bold">
+    <View className="flex-1 items-center justify-start bg-background p-6">
+      <Text className="mb-4 text-2xl font-bold">
         יצירת פרופיל חדש
       </Text>
 
@@ -60,7 +60,7 @@ export default function CreateProfile() {
           placeholder="הכנס שם לפרופיל"
           textAlign="center"
           className="
-          w-80 rounded-xl 
+          min-h-12 w-80 rounded-xl
           border border-slate-300
           bg-white px-4 py-3
           text-base"/>

@@ -46,6 +46,8 @@
             }
         }
 
+        public bool PredictionEnabled { get; set; }
+
         public DateTime CreatedAt
         {
             get
@@ -58,5 +60,6 @@
                 _createdAt = value;
             }
         }
+
     }
 }

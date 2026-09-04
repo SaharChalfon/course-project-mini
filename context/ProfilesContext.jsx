@@ -81,9 +81,18 @@ async function getProfilesAndBoards() {
     })
   );
 
+  const spokenSentencesByProfile = await Promise.all(
+    profiles.map((profile) =>
+      profile.predictionEnabled
+        ? getSpokenSentences(profile.id)
+        : Promise.resolve([])
+    )
+  );
+
   return {
     profiles,
     boards: boardsByProfile.flat(),
+    spokenSentences: spokenSentencesByProfile.flat(),
   };
 }
 
@@ -91,6 +100,7 @@ export function ProfilesProvider({ children }) {
 
   const [profiles, setProfiles] = useState([]);
   const [boards, setBoards] = useState([]);
+  const [spokenSentences, setSpokenSentences] = useState([]);
   const [isEditorMode, setIsEditorMode] = useState(false);
 
   useEffect(() => {
@@ -100,6 +110,7 @@ export function ProfilesProvider({ children }) {
 
         setProfiles(data.profiles);
         setBoards(data.boards);
+        setSpokenSentences(data.spokenSentences);
       } catch (error) {
         console.error(error);
       }
@@ -136,6 +147,7 @@ export function ProfilesProvider({ children }) {
 
     setProfiles(data.profiles);
     setBoards(data.boards);
+    setSpokenSentences(data.spokenSentences);
   };
 
   const updateProfile = async (
@@ -159,6 +171,8 @@ export function ProfilesProvider({ children }) {
         body: JSON.stringify({
           name: profileChanges.name,
           imagePath,
+          predictionEnabled:
+            profileChanges.predictionEnabled,
         }),
       }
     );
@@ -171,6 +185,7 @@ export function ProfilesProvider({ children }) {
 
     setProfiles(data.profiles);
     setBoards(data.boards);
+    setSpokenSentences(data.spokenSentences);
   };
 
   const deleteProfile = async (profileId) => {
@@ -189,6 +204,7 @@ export function ProfilesProvider({ children }) {
 
     setProfiles(data.profiles);
     setBoards(data.boards);
+    setSpokenSentences(data.spokenSentences);
   };
 
   const updateCard = async (
@@ -227,6 +243,7 @@ export function ProfilesProvider({ children }) {
 
     setProfiles(data.profiles);
     setBoards(data.boards);
+    setSpokenSentences(data.spokenSentences);
   };
 
   const deleteCard = async (boardId, cardId) => {
@@ -245,6 +262,7 @@ export function ProfilesProvider({ children }) {
 
     setProfiles(data.profiles);
     setBoards(data.boards);
+    setSpokenSentences(data.spokenSentences);
   };
 
   const saveSpokenSentence = async (
@@ -270,7 +288,14 @@ export function ProfilesProvider({ children }) {
       throw new Error("Failed to save spoken sentence.");
     }
 
-    return response.json();
+    const savedSentence = await response.json();
+
+    setSpokenSentences((currentSentences) => [
+      savedSentence,
+      ...currentSentences,
+    ]);
+
+    return savedSentence;
   };
 
 
@@ -279,6 +304,7 @@ export function ProfilesProvider({ children }) {
       value={{
         profiles,
         boards,
+        spokenSentences,
         isEditorMode,
         addProfile,
         updateProfile,

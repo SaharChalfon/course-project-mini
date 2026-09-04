@@ -36,6 +36,7 @@ namespace AacApi.Controllers
                     Id,
                     Name,
                     ImagePath,
+                    PredictionEnabled,
                     CreatedAt
                 FROM dbo.Profiles
                 ORDER BY Id;
@@ -54,8 +55,11 @@ namespace AacApi.Controllers
                     {
                         Id = reader.GetInt32(0),
                         Name = reader.GetString(1),
-                        ImagePath = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        CreatedAt = reader.GetDateTime(3)
+                        ImagePath = reader.IsDBNull(2)
+                            ? null
+                            : reader.GetString(2),
+                        PredictionEnabled = reader.GetBoolean(3),
+                        CreatedAt = reader.GetDateTime(4)
                     }
                 );
             }
@@ -312,11 +316,13 @@ namespace AacApi.Controllers
                 UPDATE dbo.Profiles
                 SET
                     Name = @Name,
-                    ImagePath = @ImagePath
+                    ImagePath = @ImagePath,
+                    PredictionEnabled = @PredictionEnabled
                 OUTPUT
                     inserted.Id,
                     inserted.Name,
                     inserted.ImagePath,
+                    inserted.PredictionEnabled,
                     inserted.CreatedAt
                 WHERE Id = @ProfileId;
             ";
@@ -349,6 +355,13 @@ namespace AacApi.Controllers
                     (object?)imagePath
                     ?? DBNull.Value;
 
+            command.Parameters
+                .Add(
+                    "@PredictionEnabled",
+                    SqlDbType.Bit
+                )
+                .Value = request.PredictionEnabled;
+
             await using var reader =
                 await command.ExecuteReaderAsync();
 
@@ -366,7 +379,8 @@ namespace AacApi.Controllers
                 ImagePath = reader.IsDBNull(2)
                     ? null
                     : reader.GetString(2),
-                CreatedAt = reader.GetDateTime(3)
+                PredictionEnabled = reader.GetBoolean(3),
+                CreatedAt = reader.GetDateTime(4)
             };
 
             return Ok(updatedProfile);

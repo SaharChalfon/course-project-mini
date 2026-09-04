@@ -1,4 +1,3 @@
-﻿/*
 USE master;
 GO
 
@@ -10,7 +9,10 @@ GO
 
 USE AACCommunicationDb;
 GO
-*/
+
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 
 
 CREATE TABLE dbo.Profiles
@@ -18,6 +20,8 @@ CREATE TABLE dbo.Profiles
     Id INT IDENTITY(1,1) NOT NULL,
     Name NVARCHAR(100) NOT NULL,
     ImagePath NVARCHAR(1000) NULL,
+    PredictionEnabled BIT NOT NULL
+        CONSTRAINT DF_Profiles_PredictionEnabled DEFAULT 0,
     CreatedAt DATETIME2(0) NOT NULL
         CONSTRAINT DF_Profiles_CreatedAt DEFAULT SYSUTCDATETIME(),
 
@@ -150,110 +154,3 @@ GO
 CREATE INDEX IX_SpokenSentences_ProfileAndCreatedAt
     ON dbo.SpokenSentences(ProfileId, CreatedAt DESC);
 GO
-
-
-
-
-
-
-
-
-SET XACT_ABORT ON;
-
-IF EXISTS (SELECT 1 FROM dbo.Profiles)
-BEGIN
-    THROW 50001, N'Profiles already contains data. Seed was not executed.', 1;
-END;
-
-BEGIN TRY
-    BEGIN TRANSACTION;
-
-    DECLARE @SeededProfiles TABLE
-    (
-        Id INT NOT NULL,
-        Name NVARCHAR(100) NOT NULL
-    );
-
-    INSERT INTO dbo.Profiles
-    (
-        Name,
-        ImagePath,
-        CreatedAt
-    )
-    OUTPUT
-        inserted.Id,
-        inserted.Name
-    INTO @SeededProfiles (Id, Name)
-    VALUES
-        (N'פרופיל ראשון', NULL, '20260813'),
-        (N'פרופיל שני', NULL, '20260813');
-
-
-    DECLARE @RootBoards TABLE
-    (
-        Id INT NOT NULL,
-        ProfileId INT NOT NULL
-    );
-
-    INSERT INTO dbo.Boards
-    (
-        ProfileId,
-        ParentBoardId,
-        Name,
-        IsRoot,
-        CreatedAt
-    )
-    OUTPUT
-        inserted.Id,
-        inserted.ProfileId
-    INTO @RootBoards (Id, ProfileId)
-    SELECT
-        Id,
-        NULL,
-        N'ראשי',
-        1,
-        '20260813'
-    FROM @SeededProfiles;
-
-
-    INSERT INTO dbo.CommunicationCards
-    (
-        BoardId,
-        CardType,
-        TargetBoardId,
-        Label,
-        SpokenText,
-        ImagePath,
-        SlotIndex,
-        CreatedAt,
-        UpdatedAt
-    )
-    SELECT
-        RootBoards.Id,
-        N'content',
-        NULL,
-        N'',
-        N'',
-        NULL,
-        Slots.SlotIndex,
-        SYSUTCDATETIME(),
-        SYSUTCDATETIME()
-    FROM @RootBoards AS RootBoards
-    CROSS JOIN
-    (
-        VALUES
-            (0), (1), (2), (3), (4), (5), (6), (7),
-            (8), (9), (10), (11), (12), (13), (14), (15),
-            (16), (17), (18), (19), (20), (21), (22), (23)
-    ) AS Slots(SlotIndex);
-
-    COMMIT TRANSACTION;
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0
-    BEGIN
-        ROLLBACK TRANSACTION;
-    END;
-
-    THROW;
-END CATCH;
