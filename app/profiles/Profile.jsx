@@ -374,7 +374,7 @@ export default function Profile() {
               <Pressable
                 onPress={handlePlayPrediction}
                 disabled={predictedWord === ""}
-                className={`w-24 items-center justify-center rounded-xl ${predictedWord === ""
+                className={`will-change-pressable w-24 items-center justify-center rounded-xl ${predictedWord === ""
                   ? "bg-slate-300"
                   : "bg-indigo-600 active:bg-indigo-700"}`}
               >
