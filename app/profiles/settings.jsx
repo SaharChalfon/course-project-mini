@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { Link, router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, Image, Pressable, Switch, Text, TextInput, View } from "react-native";
 import { getImageUrl, useProfiles } from "../../context/ProfilesContext";
 
@@ -14,30 +14,6 @@ export default function ProfileSettings() {
   const selectedProfile = profiles.find(
     (profile) => profile.id.toString() === normalizedProfileId
   );
-
-  const [name, setName] = useState(selectedProfile?.name ?? "");
-
-  const [imagePath, setImagePath] = useState(
-    selectedProfile?.imagePath ?? null
-  );
-
-  const [selectedImage, setSelectedImage] = useState(null);
-
-  const [predictionEnabled, setPredictionEnabled] =
-    useState(
-      selectedProfile?.predictionEnabled ?? false
-    );
-
-  useEffect(() => {
-    if (selectedProfile) {
-      setName(selectedProfile.name);
-      setImagePath(selectedProfile.imagePath ?? null);
-      setSelectedImage(null);
-      setPredictionEnabled(
-        selectedProfile.predictionEnabled ?? false
-      );
-    }
-  }, [selectedProfile]);
 
   if (!selectedProfile) {
     return (
@@ -56,6 +32,28 @@ export default function ProfileSettings() {
       </View>
     );
   }
+
+  return (
+    <ProfileSettingsForm
+      selectedProfile={selectedProfile}
+      updateProfile={updateProfile}
+      deleteProfile={deleteProfile}
+    />
+  );
+}
+
+function ProfileSettingsForm({
+  selectedProfile,
+  updateProfile,
+  deleteProfile,
+}) {
+  const [name, setName] = useState(selectedProfile.name);
+  const [imagePath, setImagePath] = useState(
+    selectedProfile.imagePath ?? null
+  );
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [predictionEnabled, setPredictionEnabled] =
+    useState(selectedProfile.predictionEnabled ?? false);
 
   const previewImageUri = selectedImage?.uri
     ?? (imagePath ? getImageUrl(imagePath) : null);
