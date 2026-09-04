@@ -27,7 +27,10 @@ if (-not $apiAddress) {
 
 $apiEnvPath = Join-Path $PSScriptRoot ".env.local"
 
-"EXPO_PUBLIC_API_URL=http://${apiAddress}:5229" |
+@(
+    "EXPO_PUBLIC_API_URL=http://${apiAddress}:5229"
+    "EXPO_PUBLIC_USE_RN_FETCH=1"
+) |
     Set-Content -LiteralPath $apiEnvPath -Encoding ascii
 
 Write-Host "API URL: http://${apiAddress}:5229"

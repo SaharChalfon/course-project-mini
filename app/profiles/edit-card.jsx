@@ -1,7 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getImageUrl, useProfiles } from "../../context/ProfilesContext";
 
@@ -214,32 +214,23 @@ export default function EditCard() {
                 />
 
                 <Text className="mb-2 mt-2 text-right text-sm font-bold text-slate-700">
-                  הוספת ניקוד — מקמים את הסמן אחרי האות
+                  הוספת ניקוד
                 </Text>
 
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  className="w-full"
-                  contentContainerStyle={{
-                    flexDirection: "row-reverse",
-                    gap: 8,
-                  }}
-                >
+                <View className="w-full flex-row-reverse flex-wrap gap-2">
                   {NIQQUD_MARKS.map((item) => (
                     <Pressable
                       key={item.name}
                       onPress={() => handleAddNiqqud(item.mark)}
                       accessibilityLabel={item.name}
-                      className="min-w-11 items-center rounded-lg bg-indigo-100 px-3 py-2 active:bg-indigo-200"
+                      className="h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 active:bg-indigo-200"
                     >
                       <Text className="text-xl font-bold text-indigo-950">
                         {`◌${item.mark}`}
                       </Text>
                     </Pressable>
                   ))}
-                </ScrollView>
+                </View>
               </View>
             </View>
 
